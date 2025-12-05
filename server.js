@@ -210,7 +210,13 @@ app.get("/invoices", authenticateToken, (req, res) => {
     invoices,
   });
 });
-
+// Helper: Auto-generate next invoice number
+function getNextInvoiceNumber() {
+  if (invoices.length === 0) return "INV-1001";
+  const last = invoices[invoices.length - 1].invoiceNumber;
+  const num = parseInt(last.split("-")[1]) + 1;
+  return `INV-${num}`;
+}
 // CREATE INVOICE (PROTECTED)
 app.post("/invoices", authenticateToken, (req, res) => {
   const { customer, date, dueDate, description, items } = req.body;
