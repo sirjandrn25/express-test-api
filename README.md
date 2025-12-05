@@ -37,3 +37,16 @@ cd <your-project-folder>
 
 # Install dependencies
 npm install
+
+# Invoice creation Payload
+{
+  "customer": "David Miller",
+  "date": "2025-02-10",
+  "dueDate": "2025-02-20",
+  "description": "Graphic design services",
+  "items": [
+    { "item": "Logo design", "qty": 1, "price": 100 },
+    { "item": "Brand kit", "qty": 1, "price": 150 }
+  ]
+}
+
