@@ -11,6 +11,12 @@ const ACCESS_TOKEN_SECRET = "access-secret-example";
 const REFRESH_TOKEN_SECRET = "refresh-secret-example";
 
 let refreshTokensStore = []; // In-memory store
+let users = [
+  {
+    username:"test",
+    password:"12345"
+  }
+]; // { id, username, password }
 
 // ---------------------------
 // Generate Tokens
@@ -33,6 +39,7 @@ const mockUser = {
   password: "123456", // plain text for demo only
   id: 1
 };
+
 app.post("/login", (req, res) => {
     const { username, password } = req.body;
 
@@ -41,10 +48,10 @@ app.post("/login", (req, res) => {
     return res.status(400).json({ message: "Username and password required" });
   }
 
-  // 2️⃣ Validate credentials
-  if (username !== mockUser.username || password !== mockUser.password) {
-    return res.status(401).json({ message: "Invalid username or password" });
-  }
+   // Validate user
+  const user = users.find((u) => u.username === username && u.password === password);
+  if (!user) return res.status(401).json({ message: "Invalid username or password" });// 2️⃣ Validate credentials
+ 
 
   // 3️⃣ Create tokens
   const userPayload = { id: mockUser.id, username: mockUser.username };
@@ -56,6 +63,32 @@ app.post("/login", (req, res) => {
     message: "Login successful",
     accessToken,
     refreshToken
+  });
+});
+
+
+app.post("/register", (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password)
+    return res.status(400).json({ message: "Username and password required" });
+
+  // Check if user exists
+  const exists = users.find((u) => u.username === username);
+  if (exists) return res.status(400).json({ message: "User already exists" });
+
+  // Create user
+  const newUser = {
+    id: users.length + 1,
+    username,
+    password // plain text for demo
+  };
+
+  users.push(newUser);
+
+  res.json({
+    message: "User registered successfully",
+    user: { id: newUser.id, username: newUser.username }
   });
 });
 
@@ -92,14 +125,89 @@ function authenticateToken(req, res, next) {
   });
 }
 
+const  invoices = [
+  {
+    id: 1,
+    invoiceNumber: "INV-1001",
+    customer: "John Doe",
+    amount: 250,
+    date: "2025-01-05",
+    dueDate: "2025-01-15",
+    status: "Paid",
+    description: "Web design services",
+    items: [
+      { item: "Website mockup", qty: 1, price: 150 },
+      { item: "Revisions", qty: 2, price: 50 }
+    ]
+  },
+  {
+    id: 2,
+    invoiceNumber: "INV-1002",
+    customer: "Alice Smith",
+    amount: 120,
+    date: "2025-01-08",
+    dueDate: "2025-01-18",
+    status: "Unpaid",
+    description: "Consultation session",
+    items: [
+      { item: "Consultation Session", qty: 2, price: 60 }
+    ]
+  },
+  {
+    id: 3,
+    invoiceNumber: "INV-1003",
+    customer: "Bob Johnson",
+    amount: 430,
+    date: "2025-01-12",
+    dueDate: "2025-01-22",
+    status: "Overdue",
+    description: "Office hardware supply",
+    items: [
+      { item: "Laptop", qty: 1, price: 300 },
+      { item: "Keyboard", qty: 2, price: 40 },
+      { item: "Mouse", qty: 2, price: 25 }
+    ]
+  },
+  {
+    id: 4,
+    invoiceNumber: "INV-1004",
+    customer: "Emily Carter",
+    amount: 680,
+    date: "2025-02-01",
+    dueDate: "2025-02-11",
+    status: "Paid",
+    description: "Mobile app UI/UX Design",
+    items: [
+      { item: "Initial UI Concepts", qty: 1, price: 300 },
+      { item: "Prototype", qty: 1, price: 250 },
+      { item: "Final Deliverables", qty: 1, price: 130 }
+    ]
+  },
+  {
+    id: 5,
+    invoiceNumber: "INV-1005",
+    customer: "Michael Green",
+    amount: 95,
+    date: "2025-02-03",
+    dueDate: "2025-02-13",
+    status: "Unpaid",
+    description: "Computer repair service",
+    items: [
+      { item: "Diagnostics", qty: 1, price: 20 },
+      { item: "SSD Replacement", qty: 1, price: 75 }
+    ]
+  }
+];
+
+
 // ---------------------------
 // PROTECTED ROUTE
 // ---------------------------
-app.get("/list", authenticateToken, (req, res) => {
+app.get("/invoices", authenticateToken, (req, res) => {
   res.json({
     message: "Protected data",
     user: req.user,
-    items: ["Item 1", "Item 2", "Item 3"],
+    invoices,
   });
 });
 
