@@ -211,5 +211,63 @@ app.get("/invoices", authenticateToken, (req, res) => {
   });
 });
 
+// CREATE INVOICE (PROTECTED)
+app.post("/invoices", authenticateToken, (req, res) => {
+  const { customer, date, dueDate, description, items } = req.body;
+
+  // ----------------------
+  // VALIDATION
+  // ----------------------
+
+  if (!customer) return res.status(400).json({ message: "Customer is required" });
+  if (!date) return res.status(400).json({ message: "Invoice date is required" });
+  if (!dueDate) return res.status(400).json({ message: "Due date is required" });
+
+  // Date validation
+  const dateObj = new Date(date);
+  const dueObj = new Date(dueDate);
+
+  if (isNaN(dateObj)) return res.status(400).json({ message: "Invalid date format" });
+  if (isNaN(dueObj)) return res.status(400).json({ message: "Invalid due date format" });
+
+  if (dueObj < dateObj)
+    return res.status(400).json({ message: "Due date cannot be earlier than invoice date" });
+
+  // Items validation
+  if (!items || !Array.isArray(items) || items.length === 0)
+    return res.status(400).json({ message: "Items are required" });
+
+  for (let item of items) {
+    if (!item.item || typeof item.item !== "string")
+      return res.status(400).json({ message: "Item name is required" });
+    if (!item.qty || item.qty <= 0)
+      return res.status(400).json({ message: "Item quantity must be > 0" });
+    if (!item.price || item.price <= 0)
+      return res.status(400).json({ message: "Item price must be > 0" });
+  }
+
+  // Auto-calc total amount
+  const amount = items.reduce((sum, it) => sum + it.qty * it.price, 0);
+
+  // Generate invoice
+  const newInvoice = {
+    id: invoices.length + 1,
+    invoiceNumber: getNextInvoiceNumber(),
+    customer,
+    amount,
+    date,
+    dueDate,
+    status: "Unpaid",
+    description: description || "",
+    items
+  };
+
+  invoices.push(newInvoice);
+
+  res.json({
+    message: "Invoice created successfully",
+    invoice: newInvoice
+  });
+});
 // ---------------------------
 app.listen(3000, () => console.log("Server running on port 3000"));
