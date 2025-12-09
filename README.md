@@ -36,7 +36,7 @@ npm install
 ## ▶️ Running the Project
 
 ```powershell
-node server.js
+npm run dev
 ```
 
 The server listens on port `3000` by default.
