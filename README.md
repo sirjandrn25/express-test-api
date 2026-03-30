@@ -242,4 +242,7 @@ Response:
 
 - `amount` is always recalculated from `items` on create and update.
 - Data is stored in memory, so restarting server resets users, tokens, and invoices.
-- This project is demo-ready for frontend interviews, not production-ready.
+- implementation should follow clean architecture boundaries and standard coding principles.
+- code quality, maintainability, edge-case handling, and testing approach are part of evaluation.
+- UI should efficiently display 100 or more row
+- If poosible write the test case of any you want
