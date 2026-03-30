@@ -1,157 +1,148 @@
-# 🧾 Invoice & Inventory API
+# Invoice API (Frontend Interview Ready)
 
-A simple **Express.js API** with JWT authentication that supports:
+A simple Express API with JWT authentication, invoice CRUD, pagination, and structured field-level validation errors.
 
-- User **registration** and **login**
-- **Access & refresh token** authentication
-- **Protected routes** for invoices and inventory
-- **Invoice creation with validation**
-- **In-memory storage** (no database; suitable for testing/demo)
+## Features
 
----
+- Register, login, and refresh token flow
+- Protected invoice endpoints
+- Invoice create and update (both PATCH and POST)
+- Pagination, filtering, sorting, and search on invoice list
+- Validation responses with `field` and `message`
+- In-memory data storage for quick demo/testing
 
-## 📂 Table of Contents
+## Installation
 
-1. [Installation](#installation)
-2. [Running the Project](#running-the-project)
-3. [Authentication](#authentication)
-4. [API Endpoints](#api-endpoints)
-5. [Preloaded Data](#preloaded-data)
-6. [Invoice Creation Example](#invoice-creation-example)
-7. [Notes](#notes)
-
----
-
-## ⚙️ Installation
-
-```powershell
-# Clone the repository
+```bash
 git clone <your-repo-url>
 cd <your-project-folder>
-
-# Install dependencies
 npm install
 ```
 
-## ▶️ Running the Project
+## Run
 
-```powershell
+```bash
 npm run dev
 ```
 
-The server listens on port `3000` by default.
+Server runs on `http://localhost:4000`.
 
-## 🔒 Authentication
+## Authentication
 
-This API uses JWT access and refresh tokens.
+Use bearer token for protected endpoints:
 
-- **Access token**: expires in 15 minutes.
-- **Refresh token**: expires in 7 days.
-
-Store tokens securely on the frontend. For protected requests include the header:
-
-`Authorization: Bearer <accessToken>`
-
-## 🧭 API Endpoints
-
-- **POST /register**
-  - **Auth**: none
-  - **Request body**: `{ "username": "string", "password": "string" }`
-  - **Responses**:
-    - `400` if missing fields
-    - `400` if user already exists
-    - `200` `{ message: "User registered successfully", user: { id, username } }`
-
-- **POST /login**
-  - **Auth**: none
-  - **Request body**: `{ "username": "string", "password": "string" }`
-  - **Responses**:
-    - `400` if missing username/password
-    - `401` if invalid credentials
-    - `200` `{ "message": "Login successful", "accessToken": "<JWT>", "refreshToken": "<JWT>" }`
-  - **Notes**: The server validates credentials against the in-memory `users` array.
-
-- **POST /refresh**
-  - **Auth**: none (send refresh token in body)
-  - **Request body**: `{ "refreshToken": "<refresh-token>" }`
-  - **Responses**:
-    - `401` if no token provided
-    - `403` if token not found or invalid
-    - `200` `{ "accessToken": "<new-access-token>" }`
-
-- **GET /invoices**
-  - **Auth**: Bearer access token required
-  - **Headers**: `Authorization: Bearer <accessToken>`
-  - **Responses**:
-    - `401` if no token provided
-    - `403` if token invalid/expired
-    - `200` `{ message: "Protected data", user: <token-payload>, invoices: [ ... ] }`
-
-- **POST /invoices**
-  - **Auth**: Bearer access token required
-  - **Headers**: `Authorization: Bearer <accessToken>`
-  - **Request body**:
-    ```json
-    {
-      "customer": "string",
-      "date": "YYYY-MM-DD",
-      "dueDate": "YYYY-MM-DD",
-      "description": "string (optional)",
-      "items": [ { "item": "string", "qty": number, "price": number } ]
-    }
-    ```
-  - **Validation rules**:
-    - `customer`, `date`, `dueDate` required
-    - `date` and `dueDate` must be valid dates
-    - `dueDate` cannot be earlier than `date`
-    - `items` must be a non-empty array
-    - each `item` must have `item` (string), `qty` > 0, `price` > 0
-  - **Behavior**:
-    - `amount` is auto-calculated as sum(qty * price)
-    - `invoiceNumber` auto-generated as `INV-<n>`
-    - `status` defaults to `Unpaid`
-  - **Responses**:
-    - `400` for validation errors
-    - `200` `{ message: "Invoice created successfully", invoice: { ... } }`
-
-### Example requests (PowerShell)
-
-Register:
-
-```powershell
-$body = '{"username":"alice","password":"pass123"}'
-curl -Method POST -Uri http://localhost:3000/register -Body $body -Headers @{"Content-Type"="application/json"}
+```http
+Authorization: Bearer <accessToken>
 ```
 
-Login:
+Access token expires in 15 minutes, refresh token in 7 days.
 
-```powershell
-$body = '{"username":"test","password":"12345"}'
-curl -Method POST -Uri http://localhost:3000/login -Body $body -Headers @{"Content-Type"="application/json"}
+## Standard Error Shape
+
+For validation failures:
+
+```json
+{
+  "message": "Validation failed",
+  "errors": [
+    { "field": "customer", "message": "Customer is required" },
+    { "field": "items.0.qty", "message": "Item quantity must be greater than 0" }
+  ]
+}
 ```
 
-Get invoices (use token):
+## Endpoints
 
-```powershell
-curl -Method GET -Uri http://localhost:3000/invoices -Headers @{"Authorization"="Bearer <accessToken>"}
+### 1) Register
+
+- `POST /register`
+- Auth: none
+- Body:
+
+```json
+{
+  "username": "alice",
+  "password": "pass123"
+}
 ```
 
-Refresh access token:
+- Responses:
+  - `200` success
+  - `400` field validation errors
 
-```powershell
-$body = '{"refreshToken":"<refreshToken>"}'
-curl -Method POST -Uri http://localhost:3000/refresh -Body $body -Headers @{"Content-Type"="application/json"}
+### 2) Login
+
+- `POST /login`
+- Auth: none
+- Body:
+
+```json
+{
+  "username": "alice",
+  "password": "pass123"
+}
 ```
 
-## 📦 Preloaded Data
+- Responses:
+  - `200` returns access and refresh token
+  - `400` field validation errors
+  - `401` invalid credentials
 
-- **User**: The project starts with an in-memory user for testing: `username: test`, `password: 12345`.
-- **Invoices**: A handful of example invoices are preloaded in the `invoices` array in `server.js`.
-- **In-memory store**: All data (users, refresh tokens, invoices) is stored in memory; restarting the server resets state.
+### 3) Refresh Access Token
 
-## 🧾 Invoice Creation Example
+- `POST /refresh`
+- Auth: none
+- Body:
 
-Example payload to create an invoice:
+```json
+{
+  "refreshToken": "<refreshToken>"
+}
+```
+
+- Responses:
+  - `200` new access token
+  - `401` missing refresh token
+  - `403` invalid/expired refresh token
+
+### 4) List Invoices (Paginated)
+
+- `GET /invoices`
+- Auth: required
+- Query params:
+  - `page` default `1`
+  - `limit` default `10`, max `100`
+  - `status` (e.g. `Paid`, `Unpaid`, `Overdue`)
+  - `q` search text (customer, invoiceNumber, description)
+  - `sortBy` one of: `id`, `invoiceNumber`, `customer`, `amount`, `date`, `dueDate`, `status`
+  - `order` `asc` or `desc`
+
+Example:
+
+```http
+GET /invoices?page=1&limit=5&status=Unpaid&sortBy=date&order=desc&q=alice
+```
+
+Response:
+
+```json
+{
+  "message": "Invoices fetched successfully",
+  "data": [],
+  "meta": {
+    "page": 1,
+    "limit": 5,
+    "total": 0,
+    "totalPages": 1
+  }
+}
+```
+
+### 5) Create Invoice
+
+- `POST /invoices`
+- Auth: required
+- Body:
 
 ```json
 {
@@ -166,93 +157,89 @@ Example payload to create an invoice:
 }
 ```
 
-## ⚠️ Notes
+- Responses:
+  - `200` created invoice
+  - `400` field validation errors
 
-- This project is for frontend/demo usage. Do not use plaintext passwords, secrets in code, or the in-memory refresh store in production.
-- If you want, I can add small frontend examples (fetch/Axios) showing login, storing tokens, calling protected endpoints, and refreshing tokens automatically.
+### 6) Update Invoice (PATCH)
 
----
+- `PATCH /invoices/:id`
+- Auth: required
+- Partial update accepted, but final invoice remains fully validated.
+- Example body:
 
-Happy testing — tell me if you want example frontend code added.
-# 🧾 Invoice & Inventory API
-
-A simple **Express.js API** with JWT authentication that supports:
-
-- User **registration** and **login**  
-- **Access & refresh token** authentication  
-- **Protected routes** for invoices and inventory  
-- **Invoice creation with validation**  
-- **In-memory storage** (no database; suitable for testing/demo)  
-
----
-
-## 📂 Table of Contents
-
-1. [Installation](#installation)  
-2. [Running the Project](#running-the-project)  
-3. [Authentication](#authentication)  
-4. [API Endpoints](#api-endpoints)  
-   - [Register User](#register-user)  
-   - [Login](#login)  
-   - [Refresh Token](#refresh-token)  
-   - [List Items](#list-items)  
-   - [Invoice Routes](#invoice-routes)  
-   - [Inventory Routes](#inventory-routes)  
-5. [Preloaded Data](#preloaded-data)  
-6. [Invoice Creation Example](#invoice-creation-example)  
-7. [Notes](#notes)  
-
----
-
-## ⚙️ Installation
-
-
-# Clone the repository
-git clone <your-repo-url>
-cd <your-project-folder>
-
-# Install dependencies
-npm install
-
-# Invoice creation Payload
+```json
 {
-  "customer": "David Miller",
-  "date": "2025-02-10",
-  "dueDate": "2025-02-20",
-  "description": "Graphic design services",
+  "customer": "Updated Customer",
   "items": [
-    { "item": "Logo design", "qty": 1, "price": 100 },
-    { "item": "Brand kit", "qty": 1, "price": 150 }
+    { "item": "Updated item", "qty": 2, "price": 90 }
   ]
 }
+```
 
+- Responses:
+  - `200` updated invoice
+  - `400` field validation errors
+  - `404` invoice not found
 
+### 7) Update Invoice (POST)
 
-## Frontend Implementation Guide (short)
+- `POST /invoices/:id`
+- Auth: required
+- Full update behavior using same validation as create.
+- Example body:
 
-Tech stack:
-- ShadCN UI (components) + Tailwind CSS
-- React + Next Js
-- React Hook Form (forms & validation)
-- React Query (@tanstack/react-query) for caching
-- Axios (API client)
-- Typescript
+```json
+{
+  "customer": "Client Name",
+  "date": "2025-03-01",
+  "dueDate": "2025-03-10",
+  "description": "Updated invoice",
+  "items": [
+    { "item": "Service", "qty": 1, "price": 300 }
+  ]
+}
+```
 
-Primary frontend tasks (concise):
-- Build **Login** and **Register** forms using `react-hook-form` and ShadCN input components.
-- Implement **refresh-token handling**: keep access token in memory (or React context), store refresh token securely for demo (localStorage) and use an Axios interceptor to call `POST /refresh` and retry failed requests.
-- Show **Invoice list** in a beautiful table (ShadCN/Table or headless table + Tailwind) with sorting, pagination (optional), and row actions.
-- Build **Invoice create** form with dynamic `items` (add/remove rows) and validation via React Hook Form.
-- Create **reusable components**: `Input`, `Button`, `Table`, `Modal`, `AuthForm`, `InvoiceForm`, and `ProtectedRoute`.
+- Responses:
+  - `200` updated invoice
+  - `400` field validation errors
+  - `404` invoice not found
 
-Recommended folder structure (simple, scalable):
+### 8) Update Invoice (PUT)
 
+- `PUT /invoices/:id`
+- Auth: required
+- Full update behavior using same validation as create.
+- Example body:
 
+```json
+{
+  "customer": "Client Name",
+  "date": "2025-03-01",
+  "dueDate": "2025-03-10",
+  "description": "Updated invoice with put",
+  "items": [
+    { "item": "Service", "qty": 1, "price": 300 }
+  ]
+}
+```
 
-Short notes / best practices:
-- Prefer httpOnly cookies for refresh tokens in production; this guide uses localStorage for simplicity in demos.
-- Keep access token in memory (React context) to reduce XSS exposure; refresh via interceptor on 401 errors.
-- Use React Query for caching, optimistic updates, and automatic refetching.
-- Keep UI small, build reusable primitives with ShadCN and Tailwind utility classes.
+- Responses:
+  - `200` updated invoice
+  - `400` field validation errors
+  - `404` invoice not found
 
+### 9) Delete Invoice
 
+- `DELETE /invoices/:id`
+- Auth: required
+- Responses:
+  - `200` deleted invoice payload
+  - `404` invoice not found
+
+## Notes
+
+- `amount` is always recalculated from `items` on create and update.
+- Data is stored in memory, so restarting server resets users, tokens, and invoices.
+- This project is demo-ready for frontend interviews, not production-ready.
